@@ -22,7 +22,6 @@ function calcYearlyPayment(p: number, r: number, n: number) {
     while (ok - ng > 0.0001) {
         // 万円で入力のため
         let rem = p * 10000
-        console.log(rem, rate, n)
         const mid = (ok + ng) / 2
         for (let i = 0; i < n; i++) {
             rem -= mid
@@ -62,13 +61,18 @@ function HomeLoneCalculator() {
             alert('0より大きい数を入力してください')
             return
         }
-        if (P >= 1000000) {
-            alert('100億円未満の金額を入力してください')
+        if (P > 100000) {
+            alert('10億円以下の金額を入力してください')
             return
         }
 
-        if (r >= 10) {
-            alert('利率は10％未満を入力してください')
+        if (r > 10) {
+            alert('利率は10％以下を入力してください')
+            return
+        }
+
+        if(n>100){
+            alert('期間は100年以下を入力してください')
             return
         }
 
