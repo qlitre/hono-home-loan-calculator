@@ -2,6 +2,7 @@ import { hc } from 'hono/client'
 import type { AppType } from '.'
 import { useState, useRef } from 'hono/jsx'
 import { render } from 'hono/jsx/dom'
+import { css } from 'hono/css'
 
 const client = hc<AppType>('/')
 
@@ -10,6 +11,7 @@ function App() {
         <>
             <h1>住宅ローン簡易計算ツール</h1>
             <HomeLoneCalculator />
+            <Footer />
         </>
     )
 }
@@ -43,7 +45,8 @@ function HomeLoneCalculator() {
     const yearsRef = useRef<HTMLInputElement>(null)
     const [result, setResult] = useState<number | null>(null)
 
-    const handleCalculate = () => {
+    const handleCalculate = (e: Event) => {
+        e.preventDefault()
         const principal = principalRef.current?.value || '0'
         const interestRate = interestRateRef.current?.value || '0'
         const years = yearsRef.current?.value || '0'
@@ -71,7 +74,7 @@ function HomeLoneCalculator() {
             return
         }
 
-        if(n>100){
+        if (n > 100) {
             alert('期間は100年以下を入力してください')
             return
         }
@@ -79,34 +82,50 @@ function HomeLoneCalculator() {
         const yearlyPayment = calcYearlyPayment(P, r, n)
         setResult(yearlyPayment)
     }
-
+    const y = Number(yearsRef.current?.value || '0')
     return (
         <div>
-            <div>
-                <label>
-                    借入金額(万円):
-                    <input type="number" ref={principalRef} />
-                </label>
-            </div>
-            <div>
-                <label>
-                    利率 (%):
-                    <input type="number" ref={interestRateRef} />
-                </label>
-            </div>
-            <div>
-                <label>
-                    期間 (年):
-                    <input type="number" ref={yearsRef} />
-                </label>
-            </div>
-            <button onClick={handleCalculate}>計算</button>
-            {result !== null && (
+            <form onSubmit={handleCalculate}>
                 <div>
-                    <h2>年間の支払い額: ¥{Math.floor(result).toLocaleString()}</h2>
+                    <label>
+                        借入金額(万円):
+                    </label>
+                    <input type="number" ref={principalRef} />
+
+                </div>
+                <div>
+                    <label>
+                        利率 (%):
+                    </label>
+                    <input type="number" ref={interestRateRef} />
+
+                </div>
+                <div>
+                    <label>
+                        期間 (年):
+                    </label>
+                    <input type="number" ref={yearsRef} />
+                </div>
+                <button type='submit' onClick={handleCalculate}>計算</button>
+            </form>
+            {result !== null && (
+
+                <div>
+                    <h3>毎月の支払い額: ¥{Math.floor(result / 12).toLocaleString()}</h3>
+                    <h3>年間の支払い額: ¥{Math.floor(result).toLocaleString()}</h3>
+                    <h3>合計の支払い額: ¥{(Math.floor(result) * y).toLocaleString()}</h3>
                 </div>
             )}
         </div>
+    )
+}
+
+function Footer() {
+   
+    return (
+        <footer>
+            <p>This site is powered by 🔥Hono.</p>
+        </footer>
     )
 }
 
