@@ -1,9 +1,5 @@
-import { hc } from 'hono/client'
-import type { AppType } from '.'
 import { useState, useRef } from 'hono/jsx'
 import { render } from 'hono/jsx/dom'
-
-const client = hc<AppType>('/')
 
 function App() {
     return (

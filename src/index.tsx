@@ -4,14 +4,6 @@ import { serveStatic } from 'hono/cloudflare-pages'
 const app = new Hono()
 app.use('/static/*', serveStatic())
 
-const routes = app.get('/api/clock', (c) => {
-  return c.json({
-    time: new Date().toLocaleTimeString()
-  })
-})
-
-export type AppType = typeof routes
-
 app.get('*', (c) => {
   const title = '住宅ローン簡易計算ツール'
   const description = '住宅ローンを簡易的に計算できるツールです。毎月、毎年、トータルの支払い額が計算できます'
