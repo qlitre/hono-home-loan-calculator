@@ -2,14 +2,13 @@ import { hc } from 'hono/client'
 import type { AppType } from '.'
 import { useState, useRef } from 'hono/jsx'
 import { render } from 'hono/jsx/dom'
-import { css } from 'hono/css'
 
 const client = hc<AppType>('/')
 
 function App() {
     return (
         <>
-            <h1>住宅ローン簡易計算ツール</h1>
+            <h2>住宅ローン簡易計算ツール</h2>
             <HomeLoneCalculator />
             <Footer />
         </>
@@ -17,23 +16,25 @@ function App() {
 }
 
 function calcYearlyPayment(p: number, r: number, n: number) {
-    let ng = 1
+    let ng = 0
     let ok = 10000000000
     const rate = r / 100 + 1
-
     while (ok - ng > 0.0001) {
-        // 万円で入力のため
-        let rem = p * 10000
-        const mid = (ok + ng) / 2
+        // 残債
+        let loanBalance = p * 10000
+        // 下限と上限を足して２で割る
+        const annualPayment = (ok + ng) / 2
         for (let i = 0; i < n; i++) {
-            rem -= mid
-            rem *= rate
-            if (rem < 0) break
+            loanBalance -= annualPayment
+            loanBalance *= rate
+            if (loanBalance < 0) break
         }
-        if (rem < 0) {
-            ok = mid
+        // 返し過ぎているので上限を引き下げる
+        if (loanBalance < 0) {
+            ok = annualPayment
+            // 
         } else {
-            ng = mid
+            ng = annualPayment
         }
     }
     return ok
@@ -109,11 +110,10 @@ function HomeLoneCalculator() {
                 <button type='submit' onClick={handleCalculate}>計算</button>
             </form>
             {result !== null && (
-
                 <div>
-                    <h3>毎月の支払い額: ¥{Math.floor(result / 12).toLocaleString()}</h3>
-                    <h3>年間の支払い額: ¥{Math.floor(result).toLocaleString()}</h3>
-                    <h3>合計の支払い額: ¥{(Math.floor(result) * y).toLocaleString()}</h3>
+                    <p>毎月の支払い額:<b>¥{Math.floor(result / 12).toLocaleString()}</b></p>
+                    <p>年間の支払い額:<b>¥{Math.floor(result).toLocaleString()}</b></p>
+                    <p>合計の支払い額:<b>¥{(Math.floor(result) * y).toLocaleString()}</b></p>
                 </div>
             )}
         </div>
@@ -121,7 +121,6 @@ function HomeLoneCalculator() {
 }
 
 function Footer() {
-   
     return (
         <footer>
             <p>This site is powered by 🔥Hono.</p>
