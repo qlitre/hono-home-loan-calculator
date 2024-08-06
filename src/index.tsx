@@ -3,6 +3,8 @@ import { serveStatic } from 'hono/cloudflare-pages'
 
 const app = new Hono()
 app.use('/static/*', serveStatic())
+app.use('/favicon.ico', serveStatic())
+
 
 app.get('*', (c) => {
   const title = '住宅ローン簡易計算ツール'

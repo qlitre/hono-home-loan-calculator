@@ -4,43 +4,53 @@ import { render } from 'hono/jsx/dom'
 function App() {
     return (
         <>
-            <h2>住宅ローン簡易計算ツール</h2>
+            <header>
+                <h2>住宅ローン簡易計算ツール</h2>
+            </header>
             <HomeLoneCalculator />
-            <Footer />
+            <footer>
+                <p>This site is powered by 🔥Hono.</p>
+            </footer>
         </>
     )
 }
 
-function calcYearlyPayment(p: number, r: number, n: number) {
+function calcMonthlyPayment(p: number, yearlyRate: number, n: number) {
     let ng = 0
-    let ok = 10000000000
-    const rate = r / 100 + 1
+    let ok = p * (10 ** 4) + 10 ** 5
+    const monthlyRate = (yearlyRate / 100) / 12
     while (ok - ng > 0.0001) {
         // 残債
         let loanBalance = p * 10000
         // 下限と上限を足して２で割る
-        const annualPayment = (ok + ng) / 2
+        const mid = (ok + ng) / 2
         for (let i = 0; i < n; i++) {
-            loanBalance -= annualPayment
-            loanBalance *= rate
-            if (loanBalance < 0) break
+            for (let m = 0; m < 12; m++) {
+                loanBalance -= mid
+                loanBalance += loanBalance * monthlyRate
+                if (loanBalance < 0) break
+            }
         }
         // 返し過ぎているので上限を引き下げる
         if (loanBalance < 0) {
-            ok = annualPayment
+            ok = mid
             // 
         } else {
-            ng = annualPayment
+            ng = mid
         }
     }
-    return ok
+    return Math.floor(ok)
 }
 
 function HomeLoneCalculator() {
     const principalRef = useRef<HTMLInputElement>(null)
     const interestRateRef = useRef<HTMLInputElement>(null)
     const yearsRef = useRef<HTMLInputElement>(null)
-    const [result, setResult] = useState<number | null>(null)
+    const [monthlyPayment, setMonthlyPayment] = useState<number>(0)
+    const [yearlyPayment, setYealyPayment] = useState<number>(0)
+    const [schedule, setSchedule] = useState<[number, number][]>([])
+    const [totalPayment, setTotalPayment] = useState<number>(0)
+    const [paymentType, setPaymentType] = useState<string>('ganri');
 
     const handleCalculate = (e: Event) => {
         e.preventDefault()
@@ -75,9 +85,58 @@ function HomeLoneCalculator() {
             alert('期間は100年以下を入力してください')
             return
         }
-
-        const yearlyPayment = calcYearlyPayment(P, r, n)
-        setResult(yearlyPayment)
+        // ["返済額、残債"]
+        const arr: [number, number][] = []
+        const mRate = (r / 100) / 12
+        let tot = 0
+        if (paymentType === 'ganri') {
+            const _monthlyPayment = calcMonthlyPayment(P, r, n)
+            const _yealyPayment = _monthlyPayment * 12
+            setMonthlyPayment(_monthlyPayment)
+            setYealyPayment(_yealyPayment)
+            // 二分探索中にやってもいいが分かりやすいのでもう一回シミュレート
+            tot = _yealyPayment * (n - 1)
+            let rem = P * 10000
+            for (let i = 0; i < n - 1; i++) {
+                for (let m = 0; m < 12; m++) {
+                    rem -= _monthlyPayment
+                    rem += Math.floor(rem * mRate)
+                }
+                arr.push([_yealyPayment, rem])
+            }
+            // 最後の年は残りを払う
+            arr.push([rem, 0])
+            tot += rem
+        } else {
+            setMonthlyPayment(0)
+            setYealyPayment(0)
+            const basePayment = Math.floor((P * (10 ** 4)) / (n * 12))
+            let rem = (P * 10 ** 4)
+            let risoku = 0
+            let yearlyP = 0
+            tot = P
+            for (let i = 0; i < n - 1; i++) {
+                yearlyP = basePayment * 12
+                for (let m = 0; m < 12; m++) {
+                    rem -= basePayment
+                    risoku = Math.floor(rem * mRate)
+                    yearlyP += risoku
+                }
+                arr.push([yearlyP, rem])
+            }
+            yearlyP = rem
+            for (let m = 0; m < 12; m++) {
+                rem -= basePayment
+                risoku = Math.floor(rem * mRate)
+                yearlyP += risoku
+            }
+            arr.push([yearlyP, 0])
+            for (const a of arr) {
+                tot += a[0]
+            }
+        }
+        setSchedule(arr)
+        setTotalPayment(tot)
     }
     const y = Number(yearsRef.current?.value || '0')
     return (
@@ -88,7 +147,6 @@ function HomeLoneCalculator() {
                         借入金額(万円):
                     </label>
                     <input type="number" ref={principalRef} />
-
                 </div>
                 <div>
                     <label>
@@ -102,25 +160,73 @@ function HomeLoneCalculator() {
                         期間 (年):
                     </label>
                     <input type="number" ref={yearsRef} />
+                    <label>返済方式</label>
+                    <label>
+                        <input
+                            type="radio"
+                            name="type"
+                            value="ganri"
+                            checked={paymentType === 'ganri'}
+                            onChange={() => setPaymentType('ganri')}
+                        /> 元利均等
+                    </label>
+                    <label>
+                        <input
+                            type="radio"
+                            name="type"
+                            value="gankin"
+                            checked={paymentType === 'gankin'}
+                            onChange={() => setPaymentType('gankin')}
+                        /> 元金均等
+                    </label>
                 </div>
-                <button type='submit' onClick={handleCalculate}>計算</button>
-            </form>
-            {result !== null && (
                 <div>
-                    <p>毎月の支払い額:<b>¥{Math.floor(result / 12).toLocaleString()}</b></p>
-                    <p>年間の支払い額:<b>¥{Math.floor(result).toLocaleString()}</b></p>
-                    <p>合計の支払い額:<b>¥{(Math.floor(result) * y).toLocaleString()}</b></p>
+                    <button type='submit' onClick={handleCalculate}>計算</button>
+                </div>
+            </form>
+            {totalPayment !== 0 && (
+                <div>
+                    {monthlyPayment !== 0 && (
+                        <p>毎月の支払い額:<b>¥{monthlyPayment.toLocaleString()}</b></p>
+                    )}
+                    {yearlyPayment !== 0 && (
+                        <p>年間の支払い額:<b>¥{yearlyPayment.toLocaleString()}</b></p>
+                    )}
+                    <p>合計の支払い額:<b>¥{totalPayment.toLocaleString()}</b></p>
+                    <Schedule arr={schedule} />
                 </div>
             )}
         </div>
     )
 }
 
-function Footer() {
+type ScheduleProps = {
+    arr: [number, number][]
+};
+
+function Schedule({ arr }: ScheduleProps) {
     return (
-        <footer>
-            <p>This site is powered by 🔥Hono.</p>
-        </footer>
+        <details>
+            <summary>返済スケジュール</summary>
+            <table>
+                <thead>
+                    <tr>
+                        <th></th>
+                        <th>支払い額</th>
+                        <th>残債</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {arr.map(([payment, balance], i) => (
+                        <tr key={i}>
+                            <td>{i + 1}年目</td>
+                            <td>{payment.toLocaleString()}</td>
+                            <td>{balance.toLocaleString()}</td>
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
+        </details>
     )
 }
 
