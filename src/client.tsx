@@ -42,6 +42,16 @@ function calcMonthlyPayment(p: number, yearlyRate: number, n: number) {
     return Math.floor(ok)
 }
 
+function sumFirstElements(matrix: number[][]): number {
+    let sum = 0;
+    for (const row of matrix) {
+        if (row.length > 0) {
+            sum += row[0];
+        }
+    }
+    return sum;
+}
+
 function HomeLoneCalculator() {
     const principalRef = useRef<HTMLInputElement>(null)
     const interestRateRef = useRef<HTMLInputElement>(null)
@@ -88,25 +98,23 @@ function HomeLoneCalculator() {
         // ["返済額、残債"]
         const arr: [number, number][] = []
         const mRate = (r / 100) / 12
-        let tot = 0
         if (paymentType === 'ganri') {
             const _monthlyPayment = calcMonthlyPayment(P, r, n)
             const _yealyPayment = _monthlyPayment * 12
             setMonthlyPayment(_monthlyPayment)
             setYealyPayment(_yealyPayment)
-            // 二分探索中にやってもいいが分かりやすいのでもう一回シミュレート
-            tot = _yealyPayment * (n - 1)
             let rem = P * 10000
-            for (let i = 0; i < n - 1; i++) {
+            for (let i = 0; i < n; i++) {
                 for (let m = 0; m < 12; m++) {
                     rem -= _monthlyPayment
                     rem += Math.floor(rem * mRate)
                 }
                 arr.push([_yealyPayment, rem])
             }
-            // 最後の年は残りを払う
-            arr.push([rem, 0])
-            tot += rem
+            // 最後の年を調整する
+            arr[n - 1][0] += arr[n - 1][1]
+            arr[n - 1][1] = 0
+
         } else {
             setMonthlyPayment(0)
             setYealyPayment(0)
@@ -114,8 +122,7 @@ function HomeLoneCalculator() {
             let rem = (P * 10 ** 4)
             let risoku = 0
             let yearlyP = 0
-            tot = P
-            for (let i = 0; i < n - 1; i++) {
+            for (let i = 0; i < n; i++) {
                 yearlyP = basePayment * 12
                 for (let m = 0; m < 12; m++) {
                     rem -= basePayment
@@ -124,21 +131,18 @@ function HomeLoneCalculator() {
                 }
                 arr.push([yearlyP, rem])
             }
-            yearlyP = rem
-            for (let m = 0; m < 12; m++) {
-                rem -= basePayment
-                risoku = Math.floor(rem * mRate)
-                yearlyP += risoku
-            }
-            arr.push([yearlyP, 0])
-            for (const a of arr) {
-                tot += a[0]
-            }
+            // 最後の年を調整する
+            arr[n - 1][0] += arr[n - 1][1]
+            arr[n - 1][1] = 0
         }
         setSchedule(arr)
+        const tot = sumFirstElements(arr)
         setTotalPayment(tot)
+        // コーナーケース
+        if (n == 1) {
+            setYealyPayment(tot)
+        }
     }
-    const y = Number(yearsRef.current?.value || '0')
     return (
         <div>
             <form onSubmit={handleCalculate}>
