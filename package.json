@@ -9,7 +9,7 @@
   },
   "dependencies": {
     "@types/react": "^18.3.3",
-    "hono": "^4.5.3"
+    "hono": "^4.6.17"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20240529.0",
