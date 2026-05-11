@@ -1,4 +1,5 @@
-import { useState, useRef } from 'hono/jsx'
+/** @jsxImportSource hono/jsx/dom */
+import { useState, useRef } from 'hono/jsx/dom'
 import { render } from 'hono/jsx/dom'
 
 function App() {
